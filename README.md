@@ -25,7 +25,7 @@ src/
 
 ## Environment variables
 
-Set Firebase values in `.env`:
+Set Firebase values in `.env` and do not commit that file:
 
 ```env
 VITE_FIREBASE_API_KEY=
@@ -35,6 +35,15 @@ VITE_FIREBASE_STORAGE_BUCKET=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
 ```
+
+Use `.env.example` as the checked-in template and keep real values only in your local `.env`.
+
+## Security notes
+
+- `.env` should stay local only and must not be committed.
+- Firebase web app config values are not true server secrets; they are exposed in the browser by design.
+- Real protection comes from Firebase Authentication, Firestore rules, Storage rules, API key restrictions, and App Check.
+- Never put service account credentials, admin SDK keys, or private backend tokens in this frontend app.
 
 ## Commands
 
