@@ -42,6 +42,8 @@ export default function CreateProfile() {
         uid: user.uid,
         name,
         email: user.email,
+        emailVerified: user.emailVerified || false,
+        phoneVerified: false,
         userType,
         location,
         skills,

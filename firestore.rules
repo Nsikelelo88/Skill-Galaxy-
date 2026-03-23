@@ -16,5 +16,30 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
+
+    match /endorsements/{endorsementId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.id == endorsementId
+        && request.resource.data.fromUserId == request.auth.uid
+        && request.resource.data.toUserId is string
+        && request.resource.data.skill is string
+        && request.resource.data.fromUserId != request.resource.data.toUserId;
+      allow update, delete: if false;
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.id == reviewId
+        && request.resource.data.reviewerId == request.auth.uid
+        && request.resource.data.userId is string
+        && request.resource.data.comment is string
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.reviewerId != request.resource.data.userId;
+      allow update, delete: if false;
+    }
   }
 }

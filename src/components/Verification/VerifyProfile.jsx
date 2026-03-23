@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../../firebase/config';
+import ClientReview from '../Profile/ClientReview';
+import EndorsementButton from '../Profile/EndorsementButton';
+import TrustScore from '../Profile/TrustScore';
+import VerificationBadges from '../Profile/VerificationBadges';
+import { calculateTrustScore } from '../../services/trustScore';
 
 export default function VerifyProfile() {
   const { uid } = useParams();
@@ -10,6 +15,26 @@ export default function VerifyProfile() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let unsubscribeEndorsements = () => {};
+    let unsubscribeReviews = () => {};
+
+    const refreshTrustScore = async (userId) => {
+      const trustScoreData = await calculateTrustScore(userId, { forceRefresh: true, persist: false });
+
+      setProfile((currentProfile) =>
+        currentProfile
+          ? {
+              ...currentProfile,
+              endorsementCount: trustScoreData.endorsementCount,
+              reviewCount: trustScoreData.reviewCount,
+              trustScore: trustScoreData.totalScore,
+              trustLevel: trustScoreData.level,
+              trustBreakdown: trustScoreData.breakdown,
+            }
+          : currentProfile
+      );
+    };
+
     const fetchProfile = async () => {
       try {
         const snapshot = await getDoc(doc(db, 'users', uid));
@@ -20,6 +45,46 @@ export default function VerifyProfile() {
         }
 
         setProfile(snapshot.data());
+        await refreshTrustScore(uid);
+
+        const endorsementsQuery = query(
+          collection(db, 'endorsements'),
+          where('toUserId', '==', uid)
+        );
+
+        unsubscribeEndorsements = onSnapshot(endorsementsQuery, async (endorsementSnapshot) => {
+          setProfile((currentProfile) =>
+            currentProfile
+              ? {
+                  ...currentProfile,
+                  endorsementCount: endorsementSnapshot.size,
+                }
+              : currentProfile
+          );
+
+          await refreshTrustScore(uid);
+        });
+
+        const reviewsQuery = query(collection(db, 'reviews'), where('userId', '==', uid));
+
+        unsubscribeReviews = onSnapshot(reviewsQuery, async (reviewSnapshot) => {
+          const reviews = reviewSnapshot.docs.map((reviewDoc) => reviewDoc.data());
+          const averageRating = reviews.length
+            ? Number((reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length).toFixed(1))
+            : 0;
+
+          setProfile((currentProfile) =>
+            currentProfile
+              ? {
+                  ...currentProfile,
+                  reviewCount: reviews.length,
+                  averageRating,
+                }
+              : currentProfile
+          );
+
+          await refreshTrustScore(uid);
+        });
       } catch (verificationError) {
         setError('Verification is currently limited by your Firestore access rules.');
       } finally {
@@ -28,6 +93,11 @@ export default function VerifyProfile() {
     };
 
     fetchProfile();
+
+    return () => {
+      unsubscribeEndorsements();
+      unsubscribeReviews();
+    };
   }, [uid]);
 
   if (loading) {
@@ -61,6 +131,9 @@ export default function VerifyProfile() {
         <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Skill Verification</p>
         <h1 className="mt-4 text-3xl font-bold text-white">{profile.name}</h1>
         <p className="mt-2 text-slate-300">{profile.userType === 'youth' ? 'Job Seeker' : 'Skilled Worker'}</p>
+        <div className="mt-4">
+          <VerificationBadges profile={profile} />
+        </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <div className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4">
@@ -74,17 +147,26 @@ export default function VerifyProfile() {
         </div>
 
         <div className="mt-8">
+          <TrustScore profile={profile} />
+        </div>
+
+        <div className="mt-8">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Skills</p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {profile.skills?.map((skill) => (
-              <span
+              <div
                 key={skill}
-                className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-sm text-cyan-100"
+                className="flex items-center justify-between gap-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100"
               >
-                {skill}
-              </span>
+                <span>{skill}</span>
+                <EndorsementButton toUserId={uid} skill={skill} />
+              </div>
             ))}
           </div>
+        </div>
+
+        <div className="mt-8">
+          <ClientReview userId={uid} />
         </div>
       </div>
     </div>
