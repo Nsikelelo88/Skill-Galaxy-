@@ -4,12 +4,14 @@ import Login from './components/Auth/Login'
 import Register from './components/Auth/Register'
 import OpportunityFeed from './components/Opportunities/OpportunityFeed'
 import CreateProfile from './components/Profile/CreateProfile'
+import ProfileDirectory from './components/Profile/ProfileDirectory'
 import ProfileView from './components/Profile/ProfileView'
 import VerifyProfile from './components/Verification/VerifyProfile'
 
 const navigation = [
   { to: '/create-profile', label: 'Create Profile' },
   { to: '/profile', label: 'Profile' },
+  { to: '/profiles', label: 'Browse Profiles' },
   { to: '/opportunities', label: 'Opportunities' },
 ]
 
@@ -88,6 +90,10 @@ function App() {
             <Route
               path="/profile"
               element={user ? <ProfileView /> : <Navigate to="/login" replace />}
+            />
+            <Route
+              path="/profiles"
+              element={user ? <ProfileDirectory /> : <Navigate to="/login" replace />}
             />
             <Route
               path="/opportunities"
