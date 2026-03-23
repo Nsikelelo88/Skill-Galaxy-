@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { auth, db } from '../../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
+import EvidenceUpload from './EvidenceUpload';
 
 export default function ProfileView() {
   const [profile, setProfile] = useState(null);
@@ -107,6 +108,10 @@ export default function ProfileView() {
               Copy Profile Link
             </button>
           </div>
+        </div>
+
+        <div className="mt-8">
+          <EvidenceUpload />
         </div>
 
         <div className="mt-8 text-center">
